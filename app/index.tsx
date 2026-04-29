@@ -6,12 +6,12 @@ export default function Home() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       
       <View style={styles.logoBox}>
-        <Text style={styles.logo}>♻️</Text>
+        <Text style={styles.logo}></Text>
       </View>
 
       <Text style={styles.title}>RecycleHub</Text>
       <Text style={styles.subtitle}>
-        Turn Waste into Value 🌱
+        Turn Waste into Value 
       </Text>
 
       <Link href="/login" asChild>

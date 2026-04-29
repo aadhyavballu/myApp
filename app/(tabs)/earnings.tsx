@@ -121,12 +121,16 @@ export default function Earnings() {
         <Text style={styles.title}>🏆 Eco Heroes</Text>
 
         {[
-          { name: "Rajesh Kumar", points: 2450 },
-          { name: "Priya Sharma", points: 2103 },
-          { name: "Amit Patel", points: 1876 },
+          { name: "Ninad", points: 2450 },
+          { name: "P Durganandan V Bhat", points: 2103 },
+          { name: "Nishal Nayak", points: 1876 },w
+          { name: "Likhit Nayak", points: 1875 },
+          { name: "Priyadarshan Nayak", points: 1870},
         ].map((user, i) => (
           <View key={i} style={styles.leaderRow}>
-            <Text>{i + 1}. {user.name}</Text>
+            <Text style={{ fontSize: 16 }}>
+              👤 {i + 1}. {user.name}
+            </Text>
             <Text style={styles.bold}>⚡ {user.points}</Text>
           </View>
         ))}
@@ -138,30 +142,30 @@ export default function Earnings() {
       </View>
 
       {/* HOW TO EARN */}
-      <View style={styles.card}>
-        <Text style={styles.title}>How to Earn Points</Text>
+      <View style={styles.earnCard}>
+        <Text style={styles.title}>How to Earn Points 🌿</Text>
 
         <View style={styles.earnRow}>
           <View style={styles.earnBox}>
-            <Text>♻️</Text>
+            <Text style={{ fontSize: 18 }}>♻️</Text>
             <Text style={styles.earnText}>Scan & Recycle</Text>
             <Text style={styles.earnPoints}>+10-50 pts</Text>
           </View>
 
           <View style={styles.earnBox}>
-            <Text>🎁</Text>
+            <Text style={{ fontSize: 18 }}>🎁</Text>
             <Text style={styles.earnText}>Daily Login</Text>
             <Text style={styles.earnPoints}>+5 pts</Text>
           </View>
 
           <View style={styles.earnBox}>
-            <Text>👥</Text>
+            <Text style={{ fontSize: 18 }}>👥</Text>
             <Text style={styles.earnText}>Refer Friends</Text>
             <Text style={styles.earnPoints}>+100 pts</Text>
           </View>
 
           <View style={styles.earnBox}>
-            <Text>🏆</Text>
+            <Text style={{ fontSize: 18 }}>🏆</Text>
             <Text style={styles.earnText}>Challenges</Text>
             <Text style={styles.earnPoints}>+25-200 pts</Text>
           </View>
@@ -172,6 +176,7 @@ export default function Earnings() {
   );
 }
 
+/* STYLES */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
   content: { padding: 16 },
@@ -243,7 +248,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  /* NEW STYLES */
   rewardGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -281,20 +285,44 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
+  earnCard: {
+    backgroundColor: "#ecfdf5",
+    padding: 18,
+    borderRadius: 16,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#10b981",
+  },
+
   earnRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: 12,
   },
+
   earnBox: {
     width: "48%",
-    backgroundColor: "#f1f5f9",
-    padding: 12,
-    borderRadius: 12,
+    backgroundColor: "#d1fae5",
+    padding: 14,
+    borderRadius: 14,
     marginBottom: 10,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#10b981",
   },
-  earnText: { fontSize: 12, marginTop: 5 },
-  earnPoints: { fontSize: 12, color: "#10b981", marginTop: 3 },
+
+  earnText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginTop: 6,
+    color: "#065f46",
+  },
+
+  earnPoints: {
+    fontSize: 13,
+    color: "#047857",
+    marginTop: 4,
+    fontWeight: "500",
+  },
 });

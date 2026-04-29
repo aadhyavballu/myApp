@@ -1,10 +1,21 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function SellerDashboard() {
+  const [selectedWaste, setSelectedWaste] = useState("Plastic");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const wasteTypes = ["Plastic", "Paper", "Metal", "Glass", "E-Waste"];
+
+  const findVendors = () => {
+    alert(`Searching vendors for: ${selectedWaste} ♻️`);
+  };
+
   return (
-    <View style={styles.container}>
-      
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+
       <Text style={styles.header}>Seller Dashboard</Text>
+
       <Text style={styles.subHeader}>
         Track your recycling performance ♻️
       </Text>
@@ -22,57 +33,87 @@ export default function SellerDashboard() {
         </View>
       </View>
 
-      {/* DISABLED SCAN BUTTON */}
+      {/* SCAN BUTTON */}
       <Pressable style={styles.scanBtn}>
         <Text style={styles.scanText}>📸 Scan (Available on Mobile)</Text>
       </Pressable>
 
-      {/* ✅ ADDED: RECYCLING MAP SECTION */}
+      {/* MAP SECTION */}
       <View style={styles.mapContainer}>
-        <Text style={styles.mapTitle}>Recycling Map</Text>
+        <Text style={styles.mapTitle}>🌿 Recycling Map</Text>
+
         <Text style={styles.mapSubtitle}>
           Find nearby recycling centers
         </Text>
 
-        {/* Fake Map UI */}
         <View style={styles.mapBox}>
-          <Text style={{ color: "#64748b" }}>📍 Interactive Map</Text>
-          <Text style={{ fontSize: 12, color: "#94a3b8" }}>
+          <Text style={{ color: "#065f46", fontWeight: "600" }}>
+            📍 Interactive Map
+          </Text>
+          <Text style={{ fontSize: 12, color: "#047857" }}>
             Showing nearby vendors
           </Text>
         </View>
 
-        {/* Waste Type Selector */}
-        <View style={styles.selectBox}>
-          <Text style={{ color: "#64748b" }}>Select waste types...</Text>
-        </View>
+        {/* DROPDOWN */}
+        <Text style={styles.dropdownLabel}>Select Scrap Type</Text>
 
-        <Pressable style={styles.findBtn}>
-          <Text style={{ color: "white", fontWeight: "600" }}>
-            Find Vendors
+        <Pressable
+          onPress={() => setShowDropdown(!showDropdown)}
+          style={styles.dropdown}
+        >
+          <Text style={{ color: "#065f46", fontWeight: "600" }}>
+            {selectedWaste} ⌄
           </Text>
         </Pressable>
+
+        {/* OPTIONS */}
+        {showDropdown && (
+          <View>
+            {wasteTypes.map((item, index) => (
+              <Pressable
+                key={index}
+                onPress={() => {
+                  setSelectedWaste(item);
+                  setShowDropdown(false);
+                }}
+                style={styles.option}
+              >
+                <Text style={{ color: "#065f46" }}>{item}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* FIND BUTTON */}
+        <Pressable style={styles.findBtn} onPress={findVendors}>
+          <Text style={{ color: "white", fontWeight: "700" }}>
+            🔍 Find Vendors
+          </Text>
+        </Pressable>
+
       </View>
 
-    </View>
+    </ScrollView>
   );
 }
 
+/* ✅ FIXED STYLES (THIS WAS MISSING BEFORE) */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#ecfdf5",
     padding: 16,
   },
 
   header: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#0f172a",
+    color: "#064e3b",
   },
 
   subHeader: {
-    color: "#64748b",
+    color: "#047857",
     marginBottom: 20,
   },
 
@@ -106,7 +147,7 @@ const styles = StyleSheet.create({
   },
 
   scanBtn: {
-    backgroundColor: "#94a3b8",
+    backgroundColor: "#10b981",
     padding: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -114,49 +155,66 @@ const styles = StyleSheet.create({
 
   scanText: {
     color: "white",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
-  /* ✅ NEW STYLES */
   mapContainer: {
     marginTop: 25,
     backgroundColor: "white",
     padding: 16,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#d1fae5",
   },
 
   mapTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "700",
     marginBottom: 4,
+    color: "#064e3b",
   },
 
   mapSubtitle: {
-    color: "#64748b",
+    color: "#047857",
     marginBottom: 12,
   },
 
   mapBox: {
     height: 150,
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#dcfce7",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
   },
 
-  selectBox: {
+  dropdownLabel: {
+    marginBottom: 6,
+    color: "#065f46",
+    fontWeight: "600",
+  },
+
+  dropdown: {
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#a7f3d0",
     padding: 12,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 6,
+    backgroundColor: "#f0fdf4",
+  },
+
+  option: {
+    padding: 10,
+    backgroundColor: "#dcfce7",
+    borderRadius: 8,
+    marginBottom: 5,
   },
 
   findBtn: {
-    backgroundColor: "#94a3b8",
+    backgroundColor: "#10b981",
     padding: 12,
     borderRadius: 10,
     alignItems: "center",
+    marginTop: 10,
   },
 });

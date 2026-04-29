@@ -1,75 +1,145 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, Text, TextInput, View } from "react-native";
 
 export default function Login() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  // 🔥 CHANGE THIS TO YOUR IP
+  const BASE_URL = "http://192.168.1.5:5000";
+
+  const handleLogin = async () => {
     console.log("✅ Button working");
 
-    // simple validation (optional)
     if (!email || !password) {
-      alert("Enter email and password");
+      Alert.alert("Error", "Enter email and password");
       return;
     }
 
-    // 🚀 DIRECT NAVIGATION (NO BACKEND)
-    router.replace("/(tabs)");
+    try {
+      setLoading(true);
+
+      const res = await axios.post(`${BASE_URL}/login`, {
+        email,
+        password,
+      });
+
+      if (res.data.token) {
+        // ✅ Save token
+        await AsyncStorage.setItem("token", res.data.token);
+
+        // ✅ Navigate after success
+        router.replace("/(tabs)");
+      } else {
+        Alert.alert("Login Failed", res.data.message);
+      }
+    } catch (err) {
+      console.log(err);
+      Alert.alert("Error", "Server not reachable");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", padding: 20 }}>
-      
-      <Text style={{ fontSize: 26, fontWeight: "bold", marginBottom: 20 }}>
-        Login
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        padding: 20,
+        backgroundColor: "#ecfdf5",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 30,
+          fontWeight: "800",
+          marginBottom: 20,
+          color: "#065f46",
+          textAlign: "center",
+        }}
+      >
+        Welcome Back 👋
+      </Text>
+
+      <Text
+        style={{
+          textAlign: "center",
+          color: "#047857",
+          marginBottom: 25,
+        }}
+      >
+        Login to continue to your dashboard
       </Text>
 
       <TextInput
         placeholder="Email"
+        placeholderTextColor="#94a3b8"
         value={email}
         onChangeText={setEmail}
-        style={input}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        style={{
+          borderWidth: 1,
+          borderColor: "#a7f3d0",
+          backgroundColor: "#ffffff",
+          padding: 15,
+          borderRadius: 14,
+          marginBottom: 15,
+          fontSize: 15,
+        }}
       />
 
       <TextInput
         placeholder="Password"
+        placeholderTextColor="#94a3b8"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
-        style={input}
+        style={{
+          borderWidth: 1,
+          borderColor: "#a7f3d0",
+          backgroundColor: "#ffffff",
+          padding: 15,
+          borderRadius: 14,
+          marginBottom: 20,
+          fontSize: 15,
+        }}
       />
 
-      {/* ✅ BUTTON */}
       <Pressable
         onPress={handleLogin}
+        disabled={loading}
         style={({ pressed }) => [
-          btn,
-          { opacity: pressed ? 0.6 : 1 },
+          {
+            backgroundColor: loading ? "#6ee7b7" : "#10b981",
+            padding: 16,
+            borderRadius: 14,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowRadius: 8,
+            elevation: 3,
+            transform: [{ scale: pressed ? 0.97 : 1 }],
+          },
         ]}
       >
-        <Text style={{ color: "white", textAlign: "center" }}>
-          Login
+        <Text
+          style={{
+            color: "white",
+            textAlign: "center",
+            fontWeight: "700",
+            fontSize: 16,
+          }}
+        >
+          {loading ? "Logging in..." : "Login"}
         </Text>
       </Pressable>
-
     </View>
   );
 }
-
-const input = {
-  borderWidth: 1,
-  borderColor: "#e2e8f0",
-  padding: 14,
-  borderRadius: 12,
-  marginBottom: 15,
-};
-
-const btn = {
-  backgroundColor: "#10b981",
-  padding: 15,
-  borderRadius: 12,
-};

@@ -1,126 +1,63 @@
-import { useState } from "react";
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { LineChart, PieChart } from "react-native-chart-kit";
-
-const screenWidth = Dimensions.get("window").width;
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Link, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function Home() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
-  // 📊 STATE (your dynamic data)
-  const [transactions, setTransactions] = useState([
-    { month: "Jan", amount: 2500, type: "Plastic" },
-    { month: "Feb", amount: 2900, type: "Paper" },
-    { month: "Mar", amount: 3200, type: "Metal" },
-    { month: "Apr", amount: 3700, type: "Glass" },
-    { month: "May", amount: 4100, type: "Plastic" },
-    { month: "Jun", amount: 4500, type: "Paper" },
-  ]);
+  useEffect(() => {
+    const checkLogin = async () => {
+      const token = await AsyncStorage.getItem("token");
 
-  // ➕ simulate selling item (for testing)
-  const addSale = () => {
-    const newEntry = {
-      month: "Jun",
-      amount: Math.floor(Math.random() * 2000) + 1000,
-      type: ["Plastic", "Paper", "Metal", "Glass", "E-Waste"][
-        Math.floor(Math.random() * 5)
-      ],
+      if (token) {
+        router.replace("/(tabs)");
+      } else {
+        setChecking(false);
+      }
     };
-    setTransactions([...transactions, newEntry]);
-  };
 
-  // 📈 monthly totals
-  const monthlyData = ["Jan","Feb","Mar","Apr","May","Jun"].map(month =>
-    transactions
-      .filter(t => t.month === month)
-      .reduce((sum, t) => sum + t.amount, 0)
-  );
+    checkLogin();
+  }, []);
 
-  // 🥧 material distribution
-  const materialTypes = ["Plastic","Paper","Metal","Glass","E-Waste"];
-  const pieData = materialTypes.map(type => {
-    const total = transactions
-      .filter(t => t.type === type)
-      .reduce((sum, t) => sum + t.amount, 0);
-
-    return {
-      name: type,
-      population: total || 1,
-      color:
-        type === "Plastic" ? "#3b82f6" :
-        type === "Paper" ? "#10b981" :
-        type === "Metal" ? "#f59e0b" :
-        type === "Glass" ? "#8b5cf6" :
-        "#ef4444",
-      legendFontColor: "#333",
-      legendFontSize: 12,
-    };
-  });
-
-  // 💰 totals
-  const totalEarnings = transactions.reduce((sum, t) => sum + t.amount, 0);
-  const totalItems = transactions.length;
+  // 🔄 Show loader while checking
+  if (checking) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.title}>RecycleHub ♻️</Text>
+      
+      <View style={styles.logoBox}>
+        <Text style={styles.logo}></Text>
       </View>
 
-      {/* STATS */}
-      <View style={styles.row}>
-        <View style={styles.statCard}>
-          <Text>Total Items</Text>
-          <Text style={styles.statValue}>{totalItems}</Text>
-        </View>
+      <Text style={styles.title}>RecycleHub</Text>
+      <Text style={styles.subtitle}>
+        Turn Waste into Value 
+      </Text>
 
-        <View style={styles.statCard}>
-          <Text>Total Earnings</Text>
-          <Text style={styles.statValue}>₹{totalEarnings}</Text>
-        </View>
-      </View>
+      <Link href="/login" asChild>
+        <Pressable style={styles.primaryBtn}>
+          <Text style={styles.btnText}>Login</Text>
+        </Pressable>
+      </Link>
 
-      {/* BUTTON (simulate new sale) */}
-      <Pressable style={styles.button} onPress={addSale}>
-        <Text style={{ color: "white" }}>Add Random Sale</Text>
-      </Pressable>
+      <Link href="/signup" asChild>
+        <Pressable style={styles.secondaryBtn}>
+          <Text style={styles.secondaryText}>Create Account</Text>
+        </Pressable>
+      </Link>
 
-      {/* GRAPH */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Monthly Performance</Text>
-
-        <LineChart
-          data={{
-            labels: ["Jan","Feb","Mar","Apr","May","Jun"],
-            datasets: [{ data: monthlyData }],
-          }}
-          width={screenWidth - 40}
-          height={220}
-          yAxisLabel="₹"
-          chartConfig={{
-            backgroundColor: "#fff",
-            backgroundGradientFrom: "#fff",
-            backgroundGradientTo: "#fff",
-            color: (opacity = 1) => `rgba(16,185,129,${opacity})`,
-          }}
-        />
-      </View>
-
-      {/* PIE CHART */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Material Distribution</Text>
-
-        <PieChart
-          data={pieData}
-          width={screenWidth - 40}
-          height={220}
-          accessor="population"
-          backgroundColor="transparent"
-          chartConfig={{
-            color: () => "#000",
-          }}
-        />
+      <View style={styles.highlight}>
+        <Text style={styles.highlightText}>
+          💡 Earn money while saving the planet!
+        </Text>
       </View>
 
     </ScrollView>
@@ -129,44 +66,70 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f0fdf4" },
-  content: { padding: 20 },
+  content: { alignItems: "center", padding: 20 },
 
-  header: { alignItems: "center", marginBottom: 20 },
-
-  title: { fontSize: 28, fontWeight: "bold" },
-
-  row: { flexDirection: "row", gap: 10 },
-
-  statCard: {
-    flex: 1,
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 12,
-  },
-
-  statValue: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: 5,
-  },
-
-  button: {
+  logoBox: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: "#10b981",
-    padding: 12,
-    borderRadius: 10,
-    marginVertical: 15,
+    justifyContent: "center",
     alignItems: "center",
+    marginBottom: 10,
   },
 
-  card: {
-    backgroundColor: "white",
+  logo: { fontSize: 42, color: "white" },
+
+  title: {
+    fontSize: 30,
+    fontWeight: "bold",
+    color: "#065f46",
+  },
+
+  subtitle: {
+    fontSize: 16,
+    color: "#475569",
+    marginBottom: 20,
+  },
+
+  primaryBtn: {
+    backgroundColor: "#10b981",
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 14,
+    width: "90%",
+    alignItems: "center",
     marginTop: 10,
   },
 
-  cardTitle: {
+  btnText: { color: "white", fontWeight: "600", fontSize: 16 },
+
+  secondaryBtn: {
+    borderWidth: 2,
+    borderColor: "#10b981",
+    padding: 15,
+    borderRadius: 14,
+    width: "90%",
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  secondaryText: {
+    color: "#10b981",
     fontWeight: "600",
-    marginBottom: 10,
+    fontSize: 16,
+  },
+
+  highlight: {
+    backgroundColor: "#d1fae5",
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 20,
+    width: "100%",
+  },
+
+  highlightText: {
+    textAlign: "center",
+    color: "#065f46",
+    fontWeight: "600",
   },
 });

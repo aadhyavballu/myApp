@@ -13,19 +13,19 @@ export default function Impact() {
       {/* TOP CARDS */}
       <View style={styles.row}>
         
-        <View style={[styles.card, { backgroundColor: "#3b82f6" }]}>
+        <View style={[styles.card, { backgroundColor: "#10b981" }]}>
           <Text style={styles.cardTitle}>Plastic Recycled</Text>
           <Text style={styles.bigText}>32 kg</Text>
           <Text style={styles.smallText}>+5.2 kg this month</Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: "#10b981" }]}>
+        <View style={[styles.card, { backgroundColor: "#059669" }]}>
           <Text style={styles.cardTitle}>CO₂ Saved</Text>
           <Text style={styles.bigText}>211 kg</Text>
           <Text style={styles.smallText}>≈ 890 km driven</Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: "#059669" }]}>
+        <View style={[styles.card, { backgroundColor: "#047857" }]}>
           <Text style={styles.cardTitle}>Trees Protected</Text>
           <Text style={styles.bigText}>42</Text>
           <Text style={styles.smallText}>+7 this month</Text>
@@ -60,7 +60,7 @@ export default function Impact() {
       <View style={styles.chartBox}>
         <Text style={styles.sectionTitle}>Monthly Impact Trend</Text>
         <View style={styles.fakeChart}>
-          <Text style={{ color: "#64748b" }}>
+          <Text style={{ color: "#047857" }}>
             📊 Chart will be added using Recharts (later step)
           </Text>
         </View>
@@ -105,11 +105,11 @@ export default function Impact() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8fafc" },
+  container: { flex: 1, backgroundColor: "#ecfdf5" },  // green background
   content: { padding: 16 },
 
-  title: { fontSize: 24, fontWeight: "bold", color: "#0f172a" },
-  subtitle: { color: "#64748b", marginBottom: 20 },
+  title: { fontSize: 24, fontWeight: "bold", color: "#064e3b" },
+  subtitle: { color: "#047857", marginBottom: 20 },
 
   row: {
     flexDirection: "row",
@@ -136,23 +136,23 @@ const styles = StyleSheet.create({
 
   smallCard: {
     width: "48%",
-    backgroundColor: "white",
+    backgroundColor: "#f0fdf4",
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
   },
 
-  metric: { fontSize: 16, fontWeight: "bold" },
-  metricLabel: { color: "#64748b", fontSize: 12 },
+  metric: { fontSize: 16, fontWeight: "bold", color: "#065f46" },
+  metricLabel: { color: "#047857", fontSize: 12 },
 
   chartBox: {
-    backgroundColor: "white",
+    backgroundColor: "#f0fdf4",
     padding: 16,
     borderRadius: 16,
     marginTop: 15,
   },
 
-  sectionTitle: { fontSize: 16, fontWeight: "600", marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: "600", marginBottom: 10, color: "#065f46" },
 
   fakeChart: {
     height: 120,
@@ -166,12 +166,12 @@ const styles = StyleSheet.create({
 
   barLabel: {
     fontSize: 12,
-    color: "#475569",
+    color: "#065f46",
   },
 
   barBg: {
     height: 8,
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#d1fae5",
     borderRadius: 10,
     marginTop: 4,
   },
@@ -190,11 +190,11 @@ const styles = StyleSheet.create({
 
   badge: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#f0fdf4",
     padding: 12,
     borderRadius: 12,
   },
 
-  badgeTitle: { fontWeight: "600" },
-  badgeText: { fontSize: 12, color: "#64748b" },
+  badgeTitle: { fontWeight: "600", color: "#065f46" },
+  badgeText: { fontSize: 12, color: "#047857" },
 });
