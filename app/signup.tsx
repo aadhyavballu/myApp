@@ -1,9 +1,44 @@
-import axios from "axios";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+} from "react-native";
+
+import { supabase } from "../lib/supabase";
+
+const sendWelcomeEmail = async (email: string, name: string) => {
+  try {
+    console.log("EMAIL STARTING");
+
+    const res = await fetch(
+      "https://vceleermtpmvunihnkes.supabase.co/functions/v1/send-email",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.log("EMAIL FAILED:", data);
+      return;
+    }
+
+    console.log("EMAIL SENT SUCCESS:", data);
+  } catch (err) {
+    console.log("EMAIL ERROR:", err);
+  }
+};
 
 export default function Signup() {
+
   const router = useRouter();
 
   const [name, setName] = useState("");
@@ -11,32 +46,85 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔥 CHANGE THIS TO YOUR IP
-  const BASE_URL = "http://192.168.1.5:5000";
-
   const handleSignup = async () => {
+
+    if (loading) return;
+
+    console.log("SIGNUP STARTED");
+
     if (!name || !email || !password) {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
 
+    setLoading(true);
+
     try {
-      setLoading(true);
 
-      const res = await axios.post(`${BASE_URL}/signup`, {
-        name,
-        email,
-        password,
-      });
+      // CREATE AUTH USER
+      const { data, error } =
+        await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name },
+          },
+        });
 
-      Alert.alert("Success", res.data.message);
+      console.log("DATA: user created");
+      if (error) {
 
-      if (res.data.message === "User created successfully") {
-        router.replace("/(tabs)");
+        Alert.alert(
+          "Signup Failed",
+          error.message
+        );
+
+        return;
       }
+
+      // IF USER CREATED
+      if (data.user) {
+
+        // CREATE DEFAULT DASHBOARD STATS
+        const { error: statsError } =
+          await supabase
+            .from("dashboard_stats")
+            .insert([
+              {
+                user_id: data.user.id,
+                username: name,
+                items_sold: 0,
+                earnings: 0,
+                impact: 0,
+                points: 0,
+              },
+            ]);
+
+        if (statsError) console.log("STATS ERROR:", statsError?.message);
+
+        // CREATE FIRST ACTIVITY
+        const { error: activityError } =
+          await supabase
+            .from("activities")
+            .insert([{ user_id: data.user.id, message: "Account created successfully" }]);
+
+        if (activityError) console.log("ACTIVITY ERROR:", activityError?.message);
+
+        // SEND WELCOME EMAIL ONLY AFTER SUCCESSFUL USER CREATION
+        await sendWelcomeEmail(email, name);
+      }
+
+      Alert.alert(
+        "Success",
+        "Account created successfully!"
+      );
+
+      // REDIRECT
+      router.replace("/account-created");
+
     } catch (err) {
-      console.log(err);
-      Alert.alert("Error", "Something went wrong");
+      console.log("SIGNUP CRASH:", err instanceof Error ? err.message : "Unknown error");
+      Alert.alert("Unexpected Error", "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -51,7 +139,7 @@ export default function Signup() {
         justifyContent: "center",
       }}
     >
-      {/* Header */}
+
       <Text
         style={{
           fontSize: 30,
@@ -61,7 +149,7 @@ export default function Signup() {
           textAlign: "center",
         }}
       >
-        ✨ Create Account ✨
+        ✨ Create Account
       </Text>
 
       <Text
@@ -71,19 +159,18 @@ export default function Signup() {
           marginBottom: 20,
         }}
       >
-        🌱 Join our smart scrap management platform 🌱
+        Join our smart scrap management platform
       </Text>
 
-      {/* Name */}
       <TextInput
-        placeholder="👤 Name"
+        placeholder="Name"
         placeholderTextColor="#94a3b8"
         value={name}
         onChangeText={setName}
         style={{
           borderWidth: 1,
           borderColor: "#a7f3d0",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#fff",
           padding: 15,
           borderRadius: 14,
           marginBottom: 15,
@@ -91,9 +178,8 @@ export default function Signup() {
         }}
       />
 
-      {/* Email */}
       <TextInput
-        placeholder="📧 Email"
+        placeholder="Email"
         placeholderTextColor="#94a3b8"
         value={email}
         onChangeText={setEmail}
@@ -102,7 +188,7 @@ export default function Signup() {
         style={{
           borderWidth: 1,
           borderColor: "#a7f3d0",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#fff",
           padding: 15,
           borderRadius: 14,
           marginBottom: 15,
@@ -110,9 +196,8 @@ export default function Signup() {
         }}
       />
 
-      {/* Password */}
       <TextInput
-        placeholder="🔒 Password"
+        placeholder="Password"
         placeholderTextColor="#94a3b8"
         secureTextEntry
         value={password}
@@ -120,7 +205,7 @@ export default function Signup() {
         style={{
           borderWidth: 1,
           borderColor: "#a7f3d0",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#fff",
           padding: 15,
           borderRadius: 14,
           marginBottom: 20,
@@ -128,59 +213,47 @@ export default function Signup() {
         }}
       />
 
-      {/* Button */}
       <Pressable
         onPress={handleSignup}
         disabled={loading}
-        style={({ pressed }) => [
-          {
-            backgroundColor: loading ? "#6ee7b7" : "#10b981",
-            padding: 16,
-            borderRadius: 14,
-            elevation: 3,
-            transform: [{ scale: pressed ? 0.97 : 1 }],
-            marginBottom: 25,
-          },
-        ]}
+        style={({ pressed }) => [{
+          backgroundColor: loading ? "#6ee7b7" : "#10b981",
+          padding: 16,
+          borderRadius: 14,
+          elevation: 3,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
+          marginBottom: 15,
+        }]}
       >
-        <Text
-          style={{
-            color: "white",
-            textAlign: "center",
-            fontWeight: "700",
-            fontSize: 16,
-          }}
-        >
-          {loading ? "Creating..." : "🚀 Create Account"}
+        <Text style={{ color: "white", textAlign: "center", fontWeight: "700", fontSize: 16 }}>
+          {loading ? "Creating Account..." : "Create Account"}
         </Text>
       </Pressable>
 
-      {/* About Section (unchanged) */}
-      <View
-        style={{
-          backgroundColor: "#dcfce7",
-          borderRadius: 22,
-          padding: 20,
-          elevation: 4,
-          borderWidth: 1,
-          borderColor: "#86efac",
-        }}
+      <Pressable
+        onPress={() => router.push("/login")}
+        style={{ marginBottom: 25 }}
       >
         <Text
           style={{
-            fontSize: 22,
-            fontWeight: "900",
-            color: "#064e3b",
-            marginBottom: 10,
+            textAlign: "center",
+            color: "#047857",
           }}
         >
-          🌿 About Us
-        </Text>
+          Already have an account?{" "}
 
-        <Text style={{ color: "#14532d", fontSize: 16, lineHeight: 24 }}>
-          🌱 We are a technology-driven platform focused on transforming scrap management...
+          <Text
+            style={{
+              fontWeight: "700",
+              color: "#10b981",
+            }}
+          >
+            Login
+          </Text>
+
         </Text>
-      </View>
+      </Pressable>
+
     </ScrollView>
   );
 }

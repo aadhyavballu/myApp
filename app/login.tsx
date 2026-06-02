@@ -1,50 +1,50 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { supabase } from "../lib/supabase";
 
 export default function Login() {
   const router = useRouter();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  // 🔥 CHANGE THIS TO YOUR IP
-  const BASE_URL = "http://192.168.1.5:5000";
+  const awardDailyLoginPoints = async (userId: string) => {
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data } = await supabase
+      .from("dashboard_stats")
+      .select("points, last_login_date")
+      .eq("user_id", userId)
+      .single();
+
+    if (!data) return;
+
+    if (data.last_login_date === today) return; // already claimed today
+
+    await supabase
+      .from("dashboard_stats")
+      .update({ points: (data.points ?? 0) + 5, last_login_date: today })
+      .eq("user_id", userId);
+
+    Alert.alert("Daily Login Bonus", "+5 points added for logging in today!");
+  };
 
   const handleLogin = async () => {
-    console.log("✅ Button working");
-
     if (!email || !password) {
       Alert.alert("Error", "Enter email and password");
       return;
     }
 
-    try {
-      setLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-      const res = await axios.post(`${BASE_URL}/login`, {
-        email,
-        password,
-      });
-
-      if (res.data.token) {
-        // ✅ Save token
-        await AsyncStorage.setItem("token", res.data.token);
-
-        // ✅ Navigate after success
-        router.replace("/(tabs)");
-      } else {
-        Alert.alert("Login Failed", res.data.message);
-      }
-    } catch (err) {
-      console.log(err);
-      Alert.alert("Error", "Server not reachable");
-    } finally {
-      setLoading(false);
+    if (error) {
+      Alert.alert("Login Failed", "Incorrect email or password.");
+      return;
     }
+
+    if (data.user) await awardDailyLoginPoints(data.user.id);
+
+    router.replace("/(tabs)");
   };
 
   return (
@@ -65,7 +65,7 @@ export default function Login() {
           textAlign: "center",
         }}
       >
-        Welcome Back 👋
+        Welcome Back
       </Text>
 
       <Text
@@ -88,7 +88,7 @@ export default function Login() {
         style={{
           borderWidth: 1,
           borderColor: "#a7f3d0",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#fff",
           padding: 15,
           borderRadius: 14,
           marginBottom: 15,
@@ -105,7 +105,7 @@ export default function Login() {
         style={{
           borderWidth: 1,
           borderColor: "#a7f3d0",
-          backgroundColor: "#ffffff",
+          backgroundColor: "#fff",
           padding: 15,
           borderRadius: 14,
           marginBottom: 20,
@@ -115,19 +115,13 @@ export default function Login() {
 
       <Pressable
         onPress={handleLogin}
-        disabled={loading}
-        style={({ pressed }) => [
-          {
-            backgroundColor: loading ? "#6ee7b7" : "#10b981",
-            padding: 16,
-            borderRadius: 14,
-            shadowColor: "#000",
-            shadowOpacity: 0.1,
-            shadowRadius: 8,
-            elevation: 3,
-            transform: [{ scale: pressed ? 0.97 : 1 }],
-          },
-        ]}
+        style={({ pressed }) => [{
+          backgroundColor: "#10b981",
+          padding: 16,
+          borderRadius: 14,
+          elevation: 3,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
+        }]}
       >
         <Text
           style={{
@@ -137,7 +131,29 @@ export default function Login() {
             fontSize: 16,
           }}
         >
-          {loading ? "Logging in..." : "Login"}
+          Login
+        </Text>
+      </Pressable>
+
+      <Pressable
+        onPress={() => router.push("/signup")}
+        style={{ marginTop: 20 }}
+      >
+        <Text
+          style={{
+            textAlign: "center",
+            color: "#047857",
+          }}
+        >
+          Don't have an account?{" "}
+          <Text
+            style={{
+              fontWeight: "700",
+              color: "#10b981",
+            }}
+          >
+            Sign Up
+          </Text>
         </Text>
       </Pressable>
     </View>

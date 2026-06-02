@@ -1,107 +1,136 @@
-import { Link } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { supabase } from "../lib/supabase";
 
-export default function Home() {
+export default function Index() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace("/(tabs)");
+      } else {
+        setChecking(false);
+      }
+    });
+  }, []);
+
+  if (checking) return null;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      
+    <View style={styles.container}>
       <View style={styles.logoBox}>
-        <Text style={styles.logo}></Text>
+        <Text style={styles.logoIcon}>♻️</Text>
       </View>
 
-      <Text style={styles.title}>RecycleHub</Text>
-      <Text style={styles.subtitle}>
-        Turn Waste into Value 
+      <Text style={styles.appName}>RecycleHub</Text>
+      <Text style={styles.tagline}>Turn Waste into Value 🌱</Text>
+
+      <Text style={styles.sub}>
+        Join thousands making the planet cleaner — one scrap at a time.
       </Text>
 
-      <Link href="/login" asChild>
-        <Pressable style={styles.primaryBtn}>
-          <Text style={styles.btnText}>Login</Text>
-        </Pressable>
-      </Link>
+      <Pressable
+        style={styles.loginBtn}
+        onPress={() => router.push("/login")}
+      >
+        <Text style={styles.loginText}>Login</Text>
+      </Pressable>
 
-      <Link href="/signup" asChild>
-        <Pressable style={styles.secondaryBtn}>
-          <Text style={styles.secondaryText}>Create Account</Text>
-        </Pressable>
-      </Link>
+      <Pressable
+        style={styles.signupBtn}
+        onPress={() => router.push("/signup")}
+      >
+        <Text style={styles.signupText}>Create Account</Text>
+      </Pressable>
 
-      <View style={styles.highlight}>
-        <Text style={styles.highlightText}>
-          💡 Earn money while saving the planet!
-        </Text>
-      </View>
-
-    </ScrollView>
+      <Text style={styles.footer}>
+        💡 Earn money while saving the planet!
+      </Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f0fdf4" },
-  content: { alignItems: "center", padding: 20 },
-
+  container: {
+    flex: 1,
+    backgroundColor: "#ecfdf5",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 28,
+  },
   logoBox: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: "#10b981",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
-  },
-
-  logo: { fontSize: 42, color: "white" },
-
-  title: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#065f46",
-  },
-
-  subtitle: {
-    fontSize: 16,
-    color: "#475569",
     marginBottom: 20,
+    elevation: 6,
+  },
+  logoIcon: { fontSize: 48 },
+
+  appName: {
+    fontSize: 36,
+    fontWeight: "900",
+    color: "#065f46",
+    letterSpacing: 1,
   },
 
-  primaryBtn: {
-    backgroundColor: "#10b981",
-    padding: 15,
-    borderRadius: 14,
-    width: "90%",
-    alignItems: "center",
+  tagline: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#047857",
+    marginTop: 8,
+  },
+
+  sub: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
     marginTop: 10,
+    marginBottom: 36,
+    lineHeight: 22,
   },
 
-  btnText: { color: "white", fontWeight: "600", fontSize: 16 },
+  loginBtn: {
+    backgroundColor: "#10b981",
+    width: "100%",
+    padding: 16,
+    borderRadius: 14,
+    alignItems: "center",
+    marginBottom: 12,
+    elevation: 3,
+  },
 
-  secondaryBtn: {
+  loginText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+
+  signupBtn: {
+    width: "100%",
+    padding: 16,
+    borderRadius: 14,
+    alignItems: "center",
     borderWidth: 2,
     borderColor: "#10b981",
-    padding: 15,
-    borderRadius: 14,
-    width: "90%",
-    alignItems: "center",
-    marginTop: 10,
   },
 
-  secondaryText: {
+  signupText: {
     color: "#10b981",
-    fontWeight: "600",
+    fontWeight: "700",
     fontSize: 16,
   },
 
-  highlight: {
-    backgroundColor: "#d1fae5",
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 20,
-    width: "100%",
-  },
-
-  highlightText: {
-    textAlign: "center",
-    color: "#065f46",
-    fontWeight: "600",
+  footer: {
+    marginTop: 32,
+    color: "#047857",
+    fontSize: 13,
+    fontWeight: "500",
   },
 });

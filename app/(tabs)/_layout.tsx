@@ -1,18 +1,21 @@
 import { Tabs } from "expo-router";
 import { BookOpen, DollarSign, Home, Leaf, ShoppingBag, User, Users } from "lucide-react-native";
+import { MarketProvider } from "../../lib/marketContext";
 
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
+    <MarketProvider>
+      <Tabs
+        screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#10b981",
         tabBarInactiveTintColor: "#64748b",
         tabBarStyle: {
           backgroundColor: "white",
           borderTopColor: "#e2e8f0",
-          height: 60,
-          paddingBottom: 6,
+          height: 70,
+          paddingBottom: 10,
+          paddingTop: 6,
         },
       }}
     >
@@ -84,7 +87,7 @@ export default function TabLayout() {
 
       {/* LEARN */}
       <Tabs.Screen
-        name="learn"
+        name="education"
         options={{
           title: "Learn",
           tabBarIcon: ({ color, size }) => (
@@ -93,5 +96,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+  </MarketProvider>
   );
 }

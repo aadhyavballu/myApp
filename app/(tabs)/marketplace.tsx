@@ -1,60 +1,34 @@
-import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-
-type Status = "pending" | "accepted" | "rejected";
-
-interface ScrapItem {
-  id: string;
-  seller: string;
-  material: string;
-  quantity: string;
-  price: string;
-  status: Status;
-}
+import { useEffect, useState } from "react";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { supabase } from "../../lib/supabase";
+import { Status, useMarket } from "../../lib/marketContext";
 
 export default function Marketplace() {
-  const [filter, setFilter] = useState<Status | "all">("all");
+  const [filter, setFilter] = useState<Status | "all" | "my-requests">("all");
+  const { requests, updateStatus, currentUserId, deleteRequest } = useMarket();
+  const insets = useSafeAreaInsets();
+  const [localUserId, setLocalUserId] = useState("");
 
-  const [data, setData] = useState<ScrapItem[]>([
-    {
-      id: "1",
-      seller: "Ravi",
-      material: "Plastic",
-      quantity: "5 kg",
-      price: "₹200",
-      status: "pending",
-    },
-    {
-      id: "2",
-      seller: "Anita",
-      material: "Metal",
-      quantity: "10 kg",
-      price: "₹500",
-      status: "accepted",
-    },
-    {
-      id: "3",
-      seller: "Kiran",
-      material: "Paper",
-      quantity: "3 kg",
-      price: "₹120",
-      status: "pending",
-    },
-  ]);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setLocalUserId(user.id);
+    });
+  }, []);
 
-  const updateStatus = (id: string, newStatus: Status) => {
-    setData((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: newStatus } : item
-      )
-    );
-  };
+  const userId = currentUserId || localUserId;
 
-  const filteredData =
-    filter === "all" ? data : data.filter((item) => item.status === filter);
+  const filteredData = requests.filter((item) => {
+    if (filter === "my-requests") {
+      return item.sellerId === userId;
+    }
+    const matchesStatus = filter === "all" || item.status === filter;
+    const isNotOwnRequest = item.sellerId !== userId;
+    return matchesStatus && isNotOwnRequest;
+  });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20 }}>
       
       <Text style={styles.header}>Marketplace</Text>
       <Text style={styles.subHeader}>
@@ -63,7 +37,7 @@ export default function Marketplace() {
 
       {/* FILTER TABS */}
       <View style={styles.tabs}>
-        {["all", "pending", "accepted", "rejected"].map((tab) => (
+        {["all", "pending", "accepted", "rejected", "my-requests"].map((tab) => (
           <Pressable
             key={tab}
             onPress={() => setFilter(tab as any)}
@@ -77,20 +51,25 @@ export default function Marketplace() {
                 color: filter === tab ? "white" : "#475569",
               }}
             >
-              {tab.toUpperCase()}
+              {tab === "my-requests" ? "MY REQUESTS" : tab.toUpperCase()}
             </Text>
           </Pressable>
         ))}
       </View>
 
       {/* LIST */}
+      {filteredData.length === 0 && (
+        <Text style={{ color: "#64748b", textAlign: "center", marginTop: 20 }}>
+          {filter === "my-requests" ? "No requests yet" : "No requests available"}
+        </Text>
+      )}
       {filteredData.map((item) => (
         <View key={item.id} style={styles.card}>
           
           <View style={styles.rowBetween}>
             <Text style={styles.material}>{item.material}</Text>
             <Text style={getStatusStyle(item.status)}>
-              {item.status.toUpperCase()}
+              {item.status === "accepted" ? "SOLD" : item.status.toUpperCase()}
             </Text>
           </View>
 
@@ -100,7 +79,29 @@ export default function Marketplace() {
           <Text style={styles.price}>{item.price}</Text>
 
           {/* ACTION BUTTONS */}
-          {item.status === "pending" && (
+          {item.sellerId === userId ? (
+            <View style={styles.actions}>
+              <Pressable
+                onPress={() =>
+                  Alert.alert(
+                    "Delete Request",
+                    "Are you sure you want to delete this request?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: () => deleteRequest(item.id),
+                      },
+                    ]
+                  )
+                }
+                style={[styles.button, { backgroundColor: "#ef4444", width: "100%" }]}
+              >
+                <Text style={styles.buttonText}>Delete</Text>
+              </Pressable>
+            </View>
+          ) : item.status === "pending" ? (
             <View style={styles.actions}>
               
               <Pressable
@@ -118,7 +119,7 @@ export default function Marketplace() {
               </Pressable>
 
             </View>
-          )}
+          ) : null}
 
         </View>
       ))}

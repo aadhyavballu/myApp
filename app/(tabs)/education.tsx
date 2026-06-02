@@ -1,6 +1,8 @@
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Education() {
+  const insets = useSafeAreaInsets();
 
   const resources = [
     {
@@ -46,7 +48,7 @@ export default function Education() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingTop: insets.top + 10, paddingBottom: insets.bottom + 20, padding: 15 }}>
 
       <Text style={styles.title}>Educational Resources</Text>
       <Text style={styles.subtitle}>
