@@ -1,7 +1,8 @@
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import RazorpayCheckout from "react-native-razorpay";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "../../lib/supabase";
 import { useMarket } from "../../lib/marketContext";
+import { supabase, supabaseAnonKey, supabaseUrl } from "../../lib/supabase";
 
 export default function BuyerDashboard() {
   const { requests, acceptedRequests } = useMarket();
@@ -22,14 +23,18 @@ export default function BuyerDashboard() {
   };
 
   const openPayment = async (item: any) => {
-    const amount = parseInt(item.price.replace("Rs.", "").replace("₹", "").replace(",", "")) || 0;
+    const amount = parseInt(item.price.replace("Rs.", "").replace("₹", "").replace(",", ""), 10) || 0;
 
     if (!item.sellerId) {
       Alert.alert("Error", "Seller information missing.");
       return;
     }
 
-    // First confirm before opening payment
+    if (amount <= 0) {
+      Alert.alert("Error", "Invalid amount for this payment.");
+      return;
+    }
+
     Alert.alert(
       "Confirm Payment",
       `Pay Rs.${amount} to ${item.seller} for ${item.material}?`,
@@ -38,36 +43,64 @@ export default function BuyerDashboard() {
         {
           text: "Proceed to Pay",
           onPress: async () => {
-              try {
-                const upiUrl = `upi://pay?pa=YOUR_UPI_ID&pn=${encodeURIComponent(item.seller)}&am=${amount}&cu=INR&tn=${encodeURIComponent(`Payment for ${item.material}`)}`;
-                const supported = await Linking.canOpenURL(upiUrl);
-                if (supported) {
-                  await Linking.openURL(upiUrl);
-                } else {
-                  await Linking.openURL(`https://pay.google.com`);
-                }
-              } catch {
-                Alert.alert("Error", "Could not open payment page.");
-                return;
+            try {
+              const orderResponse = await fetch(`${supabaseUrl}/functions/v1/create-order`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${supabaseAnonKey}`,
+                },
+                body: JSON.stringify({ amount }),
+              });
+
+              const order = await orderResponse.json();
+
+              if (!orderResponse.ok || !order?.id) {
+                throw new Error(order?.message || "Unable to create Razorpay order.");
               }
 
-            // After opening payment link, update seller earnings
-            const { data: sellerStats, error } = await supabase
-              .from("dashboard_stats")
-              .select("earnings, items_sold, impact")
-              .eq("user_id", item.sellerId)
-              .single();
+              const razorpayKey = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_1DP5mmOlF5G5ag";
 
-            if (error || !sellerStats) return;
+              const paymentData = await RazorpayCheckout.open({
+                key: razorpayKey,
+                amount: String(amount * 100),
+                currency: "INR",
+                order_id: order.id,
+                name: "RecycleHub",
+                description: `Payment for ${item.material}`,
+                prefill: {
+                  name: item.seller,
+                  email: "buyer@example.com",
+                  contact: "9999999999",
+                },
+                theme: { color: "#2563eb" },
+              });
 
-            await supabase
-              .from("dashboard_stats")
-              .update({
-                earnings: (sellerStats.earnings || 0) + amount,
-                items_sold: (sellerStats.items_sold || 0) + 1,
-                impact: (sellerStats.impact || 0) + 1,
-              })
-              .eq("user_id", item.sellerId);
+              if (paymentData?.razorpay_payment_id) {
+                await supabase
+                  .from("dashboard_stats")
+                  .select("earnings, items_sold, impact")
+                  .eq("user_id", item.sellerId)
+                  .single()
+                  .then(async ({ data: sellerStats, error }) => {
+                    if (error || !sellerStats) return;
+
+                    await supabase
+                      .from("dashboard_stats")
+                      .update({
+                        earnings: (sellerStats.earnings || 0) + amount,
+                        items_sold: (sellerStats.items_sold || 0) + 1,
+                        impact: (sellerStats.impact || 0) + 1,
+                      })
+                      .eq("user_id", item.sellerId);
+                  });
+
+                Alert.alert("Payment Successful", "Razorpay payment completed.");
+              }
+            } catch (error: any) {
+              console.log("Razorpay payment error:", error);
+              Alert.alert("Payment Failed", error?.message || "Could not complete the payment.");
+            }
           },
         },
       ]
@@ -98,7 +131,7 @@ export default function BuyerDashboard() {
 
       {/* Today Summary */}
       <View style={{ backgroundColor: "#dbeafe", padding: 16, borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: "#93c5fd" }}>
-        <Text style={{ fontWeight: "700", color: "#1d4ed8" }}>Today's Summary</Text>
+        <Text style={{ fontWeight: "700", color: "#1d4ed8" }}>Today&apos;s Summary</Text>
         <Text style={{ color: "#1d4ed8", marginTop: 6 }}>
           {pendingCount} pending  •  {acceptedCount} accepted  •  {collectionsCount} total requests
         </Text>
