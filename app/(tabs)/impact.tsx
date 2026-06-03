@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BarChart } from "react-native-chart-kit";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import api from "../../config/api";
 import { supabase } from "../../lib/supabase";
 
 const screenWidth = Dimensions.get("window").width - 32;
@@ -12,43 +13,40 @@ export default function Impact() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
-
-    let realtimeChannel: any;
-
-    const setupRealtime = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      realtimeChannel = supabase
-        .channel(`impact-stats-${user.id}`)
-        .on(
-          "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "dashboard_stats", filter: `user_id=eq.${user.id}` },
-          (payload: any) => {
-            if (payload.new?.items_sold !== undefined)
-              setItemsSold(payload.new.items_sold || 0);
-          }
-        )
-        .subscribe();
-    };
-
-    setupRealtime();
-    return () => { if (realtimeChannel) supabase.removeChannel(realtimeChannel); };
+    fetchImpactStats();
   }, []);
 
-  const fetchStats = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  const fetchImpactStats = async () => {
+    try {
+      const { data } = await api.get("/impact");
+      if (data?.itemsSold !== undefined) {
+        setItemsSold(Number(data.itemsSold) || 0);
+        setLoading(false);
+        return;
+      }
+    } catch (error) {
+      console.log("Backend impact fetch failed, falling back to Supabase:", error);
+    }
 
-    const { data } = await supabase
-      .from("dashboard_stats")
-      .select("items_sold")
-      .eq("user_id", user.id)
-      .single();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-    if (data) setItemsSold(data.items_sold || 0);
-    setLoading(false);
+      const { data } = await supabase
+        .from("dashboard_stats")
+        .select("items_sold")
+        .eq("user_id", user.id)
+        .single();
+
+      if (data) setItemsSold(data.items_sold || 0);
+    } catch (fallbackError) {
+      console.log("Supabase fallback failed:", fallbackError);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // FORMULAS
