@@ -15,6 +15,7 @@ export interface ScrapItem {
   address: string;
   status: Status;
   pickupLocation: string;
+  contactNumber?: string;
 }
 
 interface MarketContextValue {
@@ -104,6 +105,7 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
         address: r.address,
         status: r.status,
         pickupLocation: r.pickup_location,
+        contactNumber: r.contact_number,
       })));
     }
   };
@@ -119,19 +121,25 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const insertPayload: any = {
+      seller: request.seller,
+      seller_id: request.sellerId,
+      material: request.material,
+      quantity: request.quantity,
+      price: request.price,
+      min_amount: request.minAmount,
+      address: request.address,
+      pickup_location: request.pickupLocation,
+      status: "pending",
+    };
+
+    if (request.contactNumber) {
+      insertPayload.contact_number = request.contactNumber;
+    }
+
     const { error } = await supabase
       .from("requests")
-      .insert({
-        seller: request.seller,
-        seller_id: request.sellerId,
-        material: request.material,
-        quantity: request.quantity,
-        price: request.price,
-        min_amount: request.minAmount,
-        address: request.address,
-        pickup_location: request.pickupLocation,
-        status: "pending",
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -155,10 +163,15 @@ export function MarketProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteRequest = async (id: string) => {
-    const { error } = await supabase
-      .from("requests")
-      .delete()
-      .eq("id", id);
+    const { data: { user } } = await supabase.auth.getUser();
+    const ownerId = user?.id || currentUserId;
+
+    let request = supabase.from("requests").delete().eq("id", id);
+    if (ownerId) {
+      request = request.eq("seller_id", ownerId);
+    }
+
+    const { error } = await request;
 
     if (error) {
       console.log("deleteRequest error:", error?.message);

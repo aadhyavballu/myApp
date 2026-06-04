@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import React, { useEffect, useRef, useState } from "react";
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { supabase } from "../../lib/supabase";
+import api from "../../config/api";
 import { useMarket } from "../../lib/marketContext";
+import { supabase } from "../../lib/supabase";
 
 export default function SellerDashboard() {
   const { addRequest, currentUserId } = useMarket();
@@ -12,8 +13,11 @@ export default function SellerDashboard() {
   const [requestAddress, setRequestAddress] = useState("");
   const [minAmount, setMinAmount] = useState("");
   const [quantity, setQuantity] = useState("1 kg");
+  const [contactNumber, setContactNumber] = useState("");
+  const [scanResult, setScanResult] = useState<string | null>(null);
 
   const cameraRef = useRef<React.ElementRef<typeof CameraView> | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
@@ -73,28 +77,52 @@ export default function SellerDashboard() {
         return;
       }
     }
+    setCameraReady(false);
     setShowCamera(true);
   };
 
   const scanMaterial = async () => {
     try {
+      if (!cameraReady) {
+        Alert.alert("Camera Not Ready", "Please wait for the camera to initialize.");
+        return;
+      }
       setIsScanning(true);
-      if (!cameraRef.current) return;
+      if (!cameraRef.current || !cameraRef.current.takePicture) {
+        Alert.alert("Camera Error", "Camera is not ready. Please try again.");
+        return;
+      }
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const photo: any = await cameraRef.current.takePicture({ quality: 0.5, base64: true });
+      let detectedObject = "unknown scrap item";
+      let category = selectedWaste;
 
-      const detectedObjects = ["plastic bottle", "newspaper", "aluminum can", "glass bottle", "laptop charger", "battery", "cardboard box"];
-      const object = detectedObjects[Math.floor(Math.random() * detectedObjects.length)];
+      if (photo?.base64) {
+        try {
+          const response = await api.post("/scan-ai", { imageBase64: photo.base64 });
+          const { label, category: predictedCategory } = response.data || {};
+          if (label) detectedObject = label;
+          if (predictedCategory) category = predictedCategory;
+        } catch (scanError) {
+          console.log("AI scan failed, falling back to local detection:", scanError);
+        }
+      }
 
-      let category = "Plastic";
-      if (object.includes("paper") || object.includes("newspaper") || object.includes("cardboard")) category = "Paper";
-      else if (object.includes("metal") || object.includes("can") || object.includes("aluminum")) category = "Metal";
-      else if (object.includes("glass")) category = "Glass";
-      else if (object.includes("laptop") || object.includes("battery") || object.includes("charger")) category = "E-Waste";
+      if (detectedObject === "unknown scrap item") {
+        const fallbackObjects = ["plastic bottle", "newspaper", "aluminum can", "glass bottle", "laptop charger", "battery", "cardboard box"];
+        const object = fallbackObjects[Math.floor(Math.random() * fallbackObjects.length)];
+        detectedObject = object;
+        if (object.includes("paper") || object.includes("newspaper") || object.includes("cardboard")) category = "Paper";
+        else if (object.includes("metal") || object.includes("can") || object.includes("aluminum")) category = "Metal";
+        else if (object.includes("glass")) category = "Glass";
+        else if (object.includes("laptop") || object.includes("battery") || object.includes("charger")) category = "E-Waste";
+      }
 
-      Alert.alert("Material Detected", `${object}\n\nSelected: ${category}\n+30 points earned!`);
       setSelectedWaste(category);
+      setScanResult(`${detectedObject} (${category})`);
       setShowCamera(false);
+
+      Alert.alert("Material Detected", `${detectedObject}\n\nSelected: ${category}\n+30 points earned!`);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -122,10 +150,16 @@ export default function SellerDashboard() {
   if (showCamera) {
     return (
       <View style={styles.cameraContainer}>
-        <CameraView ref={cameraRef} style={styles.cameraView} facing="back" />
+        <CameraView
+          ref={cameraRef}
+          style={styles.cameraView}
+          facing="back"
+          onCameraReady={() => setCameraReady(true)}
+          onMountError={(event) => console.log("Camera mount error", event)}
+        />
         <View style={styles.cameraControls}>
-          <Pressable style={styles.scanCaptureBtn} onPress={scanMaterial} disabled={isScanning}>
-            <Text style={styles.closeCameraText}>{isScanning ? "Scanning..." : "Scan Material"}</Text>
+          <Pressable style={styles.scanCaptureBtn} onPress={scanMaterial} disabled={isScanning || !cameraReady}>
+            <Text style={styles.closeCameraText}>{isScanning ? "Scanning..." : cameraReady ? "Scan Material" : "Loading Camera..."}</Text>
           </Pressable>
           <Pressable style={styles.closeCameraBtn} onPress={() => setShowCamera(false)}>
             <Text style={styles.closeCameraText}>Close Camera</Text>
@@ -159,6 +193,9 @@ export default function SellerDashboard() {
       <Pressable style={styles.scanBtn} onPress={openCamera}>
         <Text style={styles.scanText}>Scan Scrap</Text>
       </Pressable>
+      {scanResult ? (
+        <Text style={styles.scanResult}>Last detected: {scanResult}</Text>
+      ) : null}
 
       {/* DROPDOWN */}
       <Text style={styles.dropdownLabel}>Select Scrap Type</Text>
@@ -196,6 +233,16 @@ export default function SellerDashboard() {
           style={styles.input}
         />
 
+        <Text style={styles.fieldLabel}>Contact Number</Text>
+        <TextInput
+          value={contactNumber}
+          onChangeText={setContactNumber}
+          placeholder="Enter phone number"
+          placeholderTextColor="#94a3b8"
+          keyboardType="phone-pad"
+          style={styles.input}
+        />
+
         <Text style={styles.fieldLabel}>Minimum Amount Expected (Rs.)</Text>
         <TextInput
           value={minAmount}
@@ -224,6 +271,12 @@ export default function SellerDashboard() {
             }
 
             const { data: { user } } = await supabase.auth.getUser();
+            const sellerId = user?.id || currentUserId;
+            if (!sellerId) {
+              Alert.alert("User Error", "Unable to identify your account. Please sign in again.");
+              return;
+            }
+
             const sellerName =
               user?.user_metadata?.full_name ??
               user?.email?.split("@")[0] ??
@@ -231,17 +284,19 @@ export default function SellerDashboard() {
 
             addRequest({
               seller: sellerName,
-              sellerId: currentUserId,
+              sellerId,
               material: selectedWaste,
               quantity,
               price: `Rs.${minAmount}`,
               minAmount: `Rs.${minAmount}`,
               address: requestAddress,
               pickupLocation: requestAddress,
+              contactNumber: contactNumber.trim(),
             });
 
             Alert.alert("Request Sent", "Your vendor request is now visible in the marketplace.");
             setRequestAddress("");
+            setContactNumber("");
             setMinAmount("");
             setQuantity("1 kg");
           }}
@@ -264,6 +319,7 @@ const styles = StyleSheet.create({
   green: { fontSize: 22, fontWeight: "bold", color: "#10b981" },
   scanBtn: { backgroundColor: "#10b981", padding: 14, borderRadius: 12, alignItems: "center" },
   scanText: { color: "white", fontWeight: "700" },
+  scanResult: { marginTop: 10, color: "#065f46", fontSize: 14, fontWeight: "600" },
   dropdownLabel: { marginTop: 20, marginBottom: 6, color: "#065f46", fontWeight: "600" },
   dropdown: { borderWidth: 1, borderColor: "#a7f3d0", padding: 12, borderRadius: 10, marginBottom: 6, backgroundColor: "#f0fdf4" },
   option: { padding: 10, backgroundColor: "#dcfce7", borderRadius: 8, marginBottom: 5 },

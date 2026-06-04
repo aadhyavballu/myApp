@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "../../lib/supabase";
 import { Status, useMarket } from "../../lib/marketContext";
+import { supabase } from "../../lib/supabase";
 
 export default function Marketplace() {
   const [filter, setFilter] = useState<Status | "all" | "my-requests">("all");
@@ -74,6 +74,7 @@ export default function Marketplace() {
           </View>
 
           <Text>Seller: {item.seller}</Text>
+          {item.contactNumber ? <Text>Contact: {item.contactNumber}</Text> : null}
           <Text>Quantity: {item.quantity}</Text>
 
           <Text style={styles.price}>{item.price}</Text>

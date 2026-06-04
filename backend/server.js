@@ -119,17 +119,28 @@ app.post("/products/add", authMiddleware, (req, res) => {
 
 app.get("/products", (req, res) => res.json(products));
 
-app.post("/orders/buy", authMiddleware, (req, res) => {
+app.post("/orders/buy", (req, res) => {
   try {
-    const { productId } = req.body;
-    const product = products.find((p) => p.id === productId);
+    const { productId, sellerId, buyerId, price, material } = req.body;
+    const product = productId ? products.find((p) => p.id === productId) : null;
 
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product && (!sellerId || typeof price !== "number")) {
+      return res.status(400).json({ message: "Product or sellerId and price are required" });
+    }
 
-    const order = { id: Date.now().toString(), productId: product.id, buyerId: req.user.id, sellerId: product.sellerId, price: product.price };
+    const order = {
+      id: Date.now().toString(),
+      productId: product?.id || null,
+      buyerId: buyerId || "anonymous",
+      sellerId: product?.sellerId || sellerId,
+      price: product?.price || price,
+      material: product?.material || material || "unknown",
+      createdAt: new Date().toISOString(),
+    };
+
     orders.push(order);
 
-    res.json({ message: "Purchase successful", order });
+    res.json({ message: "Purchase recorded", order });
   } catch (err) {
     res.status(500).json({ message: "Error buying product" });
   }
@@ -152,6 +163,67 @@ app.get("/impact", (req, res) => {
     res.json(buildImpactSummary(itemsSold));
   } catch (err) {
     res.status(500).json({ message: "Error fetching impact data" });
+  }
+});
+
+app.post("/scan-ai", async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) return res.status(400).json({ message: "Image required" });
+
+    const fallback = { label: "unknown scrap item", category: "Plastic", raw: "fallback" };
+    if (!process.env.OPENAI_API_KEY) {
+      return res.json(fallback);
+    }
+
+    const promptText = `You are a waste-sorting assistant. Identify the main waste item in the provided image and map it to one of these categories: Plastic, Paper, Metal, Glass, E-Waste. Output only valid JSON with keys \"label\" and \"category\".`;
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        input: [
+          {
+            role: "user",
+            content: [
+              { type: "input_text", text: promptText },
+              { type: "input_image", image: { b64_json: imageBase64 } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    const scanData = await response.json();
+    const rawText = (scanData?.output?.[0]?.content || [])
+      .map((item) => item?.text || "")
+      .join(" ")
+      .trim();
+
+    let parsed = fallback;
+    if (rawText) {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const parsedJson = JSON.parse(jsonMatch[0]);
+          parsed = {
+            label: parsedJson.label || fallback.label,
+            category: parsedJson.category || fallback.category,
+            raw: rawText,
+          };
+        } catch (parseError) {
+          console.log("scan-ai parse error", parseError);
+        }
+      }
+    }
+
+    return res.json(parsed);
+  } catch (err) {
+    console.log("scan-ai error", err);
+    res.json({ label: "unknown scrap item", category: "Plastic", raw: "error" });
   }
 });
 

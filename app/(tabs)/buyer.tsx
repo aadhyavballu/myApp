@@ -1,6 +1,7 @@
 import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import RazorpayCheckout from "react-native-razorpay";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import api from "../../config/api";
 import { useMarket } from "../../lib/marketContext";
 import { supabase, supabaseAnonKey, supabaseUrl } from "../../lib/supabase";
 
@@ -94,6 +95,18 @@ export default function BuyerDashboard() {
                       })
                       .eq("user_id", item.sellerId);
                   });
+
+                try {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  await api.post("/orders/buy", {
+                    sellerId: item.sellerId,
+                    buyerId: user?.id,
+                    price: amount,
+                    material: item.material,
+                  });
+                } catch (backendError) {
+                  console.log("Backend order recording failed:", backendError);
+                }
 
                 Alert.alert("Payment Successful", "Razorpay payment completed.");
               }
